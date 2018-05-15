@@ -5,7 +5,37 @@ from torch import optim
 import torch.nn.functional as F
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Positional Encoder that outputs a 'sentence matrix' containing all word
+# embeddings of the sentence concatenated with embeddings of the position of
+# the word.
 class EncoderPositional(nn.Module):
+    def __init__(self, input_size, word_embed_size, pos_embed_size, max_length = MAX_LENGTH):
+        super(EncoderPositional,self).__init__()
+        self.hidden_size = word_embed_size + pos_embed_size
+        self.word_embedding = nn.Embedding(input_size, word_embed_size)
+
+        # Create an additional embedding layer for positions
+        self.pos_embedding = nn.Embedding(max_length, pos_embed_size)
+
+    def forward(self, inputs, max_length = MAX_LENGTH):
+        # Transform inputs to embedding matrix
+        output = torch.zeros(max_length, self.hidden_size, device=device)
+        for i, input in enumerate(inputs):
+            word_embedding = self.word_embedding(input).view(-1)
+            pos_embedding = self.pos_embedding(torch.tensor(i)).view(-1)
+
+            # Concat word and position embedding to create positional embedding
+            output[i] = torch.cat((word_embedding,pos_embedding))
+
+        # Compute hidden state as average over word embeddings
+        hidden = output[0:len(inputs),:].mean(dim=0).view(1,1,-1)
+        return output, hidden
+
+# Positional Encoder that outputs a 'sentence matrix' containing all word
+# embeddings of the sentence concatenated with a simple word index (float)
+# in the sentence of the corresponding word. Word embedding size is reduced
+# by 1 in order to let total positional embedding size be hidden_size
+class EncoderPositionalSimple(nn.Module):
     def __init__(self, input_size, hidden_size):
         super(EncoderPositional,self).__init__()
         self.hidden_size = hidden_size
