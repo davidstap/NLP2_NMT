@@ -5,6 +5,26 @@ from torch import optim
 import torch.nn.functional as F
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+class EncoderPositional(nn.Module):
+    def __init__(self, input_size, hidden_size):
+        super(EncoderPositional,self).__init__()
+        self.hidden_size = hidden_size
+        self.embedding = nn.Embedding(input_size, hidden_size-1)
+
+    def forward(self, inputs, max_length = MAX_LENGTH):
+        # Transform inputs to embedding matrix
+        output = torch.zeros(max_length, self.hidden_size, device=device)
+        for i, input in enumerate(inputs):
+            word_embedding = self.embedding(input).view(-1)
+
+            # Add word position to create positional embedding
+            position = torch.tensor([i], dtype=torch.float)
+            output[i] = torch.cat((word_embedding,position))
+
+        # Compute hidden state as average over word embeddings
+        hidden = output[0:len(inputs),:].mean(dim=0).view(1,1,-1)
+        return output, hidden
+
 class EncoderRNN(nn.Module):
     def __init__(self, input_size, hidden_size):
         super(EncoderRNN, self).__init__()

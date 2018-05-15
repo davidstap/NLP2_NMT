@@ -53,6 +53,62 @@ def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, print_ev
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
     decoder_optimizer, criterion, max_length=MAX_LENGTH, teacher_forcing_ratio = 0.5):
     # Init encoder and set gradients to 0
+    encoder_optimizer.zero_grad()
+    decoder_optimizer.zero_grad()
+    loss = 0
+
+    # Init encoder output size
+    target_length = target_tensor.size(0)
+
+    # Loop over input words and compute intermediate outputs and hidden states
+    encoder_outputs, encoder_hidden = encoder(input_tensor, max_length)
+
+    # Init decoder
+    decoder_input = torch.tensor([[0]], device=device)
+    decoder_hidden = encoder_hidden
+    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+
+    if use_teacher_forcing:
+        # Teacher forcing: Feed the target as the next input
+        for di in range(target_length):
+            decoder_output, decoder_hidden, decoder_attention = decoder(
+                decoder_input, decoder_hidden, encoder_outputs)
+            loss += criterion(decoder_output, target_tensor[di])
+            decoder_input = target_tensor[di]  # Teacher forcing
+
+    else:
+        # Without teacher forcing: use its own predictions as the next input
+        for di in range(target_length):
+            decoder_output, decoder_hidden, decoder_attention = decoder(
+                decoder_input, decoder_hidden, encoder_outputs)
+            topv, topi = decoder_output.topk(1)
+            decoder_input = topi.squeeze().detach()  # detach from history as input
+
+            loss += criterion(decoder_output, target_tensor[di])
+            if decoder_input.item() == 1:
+                break
+
+    # Compute loss and gradients, update weights
+    loss.backward()
+    encoder_optimizer.step()
+    decoder_optimizer.step()
+    return loss.item() / target_length
+
+def asMinutes(s):
+    m = math.floor(s / 60)
+    s -= m * 60
+    return '{}m {}s'.format(m, s)
+
+def timeSince(since, percent):
+    now = time.time()
+    s = now - since
+    es = s / (percent)
+    rs = es - s
+    return '{} (- {})'.format(asMinutes(s), asMinutes(rs))
+
+def train_classic(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
+    decoder_optimizer, criterion, max_length=MAX_LENGTH, teacher_forcing_ratio = 0.5):
+    # Init encoder and set gradients to 0
     encoder_hidden = encoder.initHidden()
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
@@ -99,15 +155,3 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
     encoder_optimizer.step()
     decoder_optimizer.step()
     return loss.item() / target_length
-
-def asMinutes(s):
-    m = math.floor(s / 60)
-    s -= m * 60
-    return '{}m {}s'.format(m, s)
-
-def timeSince(since, percent):
-    now = time.time()
-    s = now - since
-    es = s / (percent)
-    rs = es - s
-    return '{} (- {})'.format(asMinutes(s), asMinutes(rs))
