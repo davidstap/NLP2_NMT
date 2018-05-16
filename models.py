@@ -26,13 +26,14 @@ class EncoderPositional(nn.Module):
 
             # Concat word and position embedding to create positional embedding
             # TODO nn.linear ipv cat
-            # TODO teruggeven weights ?
-            # TODO nn.embedding: doet die bovenstaande al?  
             output[i] = torch.cat((word_embedding,pos_embedding))
 
         # Compute hidden state as average over word embeddings
         hidden = output[0:len(inputs),:].mean(dim=0).view(1,1,-1)
         return output, hidden
+
+    def initHidden(self):
+        return torch.zeros(1, 1, self.hidden_size, device=device)
 
 # Positional Encoder that outputs a 'sentence matrix' containing all word
 # embeddings of the sentence concatenated with a simple word index (float)

@@ -32,19 +32,18 @@ def load_data(data_type):
 
 def load_file(fn):
     with open(fn, 'r') as f:
-        return [s.split() for s in f.read().splitlines()]
+        sentences = [s.split() for s in f.read().splitlines()]
+        return sentences[:250]
 
 def make_bpe():
     # create lowercase files
     # TODO: remove '.' (since we already use a EOS symbol in Lang) ?
-
     os.system("tr A-Z a-z < data/train/train.en > data/train/train_lc.en")
     os.system("tr A-Z a-z < data/train/train.fr > data/train/train_lc.fr")
     os.system("tr A-Z a-z < data/test/test_2017_flickr.en > data/test/test_2017_flickr_lc.en")
     os.system("tr A-Z a-z < data/test/test_2017_flickr.fr > data/test/test_2017_flickr_lc.fr")
     os.system("tr A-Z a-z < data/val/val.en > data/val/val_lc.en")
     os.system("tr A-Z a-z < data/val/val.fr > data/val/val_lc.fr")
-
     # create BPE vocabs (by combining English and French)
     os.system("python subword-nmt/learn_joint_bpe_and_vocab.py --input data/train/train_lc.en data/train/train_lc.fr -s 90000 -o data/bpe/ef_codes --write-vocabulary data/bpe/vocab_file_en data/bpe/vocab_file_fr")
     # translate original data to BPE representation (e.g. English stored in data/train/train.en.BPE)
