@@ -29,7 +29,7 @@ create_bpe = False
 word_embed_size = 256
 pos_embed_size = 20
 hidden_size = word_embed_size + pos_embed_size
-max_sent_len = 50
+max_sent_len = 100
 
 
 # Load corpus
@@ -45,8 +45,7 @@ encoder = EncoderPositional(input_lang.n_words, word_embed_size, pos_embed_size,
 # encoder = EncoderPositionalSimple(input_lang.n_words, word_embed_size).to(device)
 attn_decoder = AttnDecoderRNN(hidden_size, output_lang.n_words, max_sent_len,dropout_p=0.1).to(device)
 
-evaluateRandomly(encoder,attn_decoder, input_lang, output_lang, pairs, max_sent_len, device)
-quit()
+# evaluateRandomly(encoder,attn_decoder, input_lang, output_lang, pairs, max_sent_len, device)
 
 # compare sum sum before and after training
 # for param in encoder.parameters():
@@ -56,7 +55,7 @@ quit()
 # n_iters = 75000
 n_iters = 100
 
-trainIters(input_lang, output_lang, pairs, encoder, attn_decoder, n_iters, print_every=100)
+trainIters(input_lang, output_lang, pairs, encoder, attn_decoder, n_iters,max_sent_len, print_every=100)
 print('finished training')
 
 # compare sum sum before and after training

@@ -14,7 +14,7 @@ import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
+def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, max_length, print_every=1000, plot_every=100, learning_rate=0.01):
     start = time.time()
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
@@ -40,7 +40,7 @@ def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, print_ev
 
         # Train model using one sentence pair, returns the negative log likelihood
         loss = train(input_tensor, target_tensor, encoder,
-                     decoder, encoder_optimizer, decoder_optimizer, criterion)
+                     decoder, encoder_optimizer, decoder_optimizer, criterion, max_length)
         print_loss_total += loss
         plot_loss_total += loss
 
