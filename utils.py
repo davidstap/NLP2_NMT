@@ -7,7 +7,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 MAX_LENGTH = 100
 
-def load_data(data_type, preprocess_type):
+def load_data(data_type):
     if data_type == 'train':
         fn_e = '/train/train.en.BPE'
         fn_f = '/train/train.fr.BPE'
@@ -18,9 +18,9 @@ def load_data(data_type, preprocess_type):
         fn_e = '/test/test_2017_flickr.en.BPE'
         fn_f = '/test/test_2017_flickr.fr.BPE'
 
-    english = preprocess(load_file('data{}'.format(fn_e)), preprocess_type)
+    english = load_file('data{}'.format(fn_e))
     input_lang = Lang(english)
-    french = preprocess(load_file('data{}'.format(fn_f)), preprocess_type)
+    french = load_file('data{}'.format(fn_f))
     output_lang = Lang(french)
 
     pairs = list(zip(english, french))
@@ -34,12 +34,10 @@ def load_file(fn):
     with open(fn, 'r') as f:
         return [s.split() for s in f.read().splitlines()]
 
-def preprocess(data, type):
-    if type == 'lowercasing':
-        return [[w.lower() for w in s] for s in data]
-
 def make_bpe():
     # create lowercase files
+    # TODO: remove '.' (since we already use a EOS symbol in Lang) ?
+
     os.system("tr A-Z a-z < data/train/train.en > data/train/train_lc.en")
     os.system("tr A-Z a-z < data/train/train.fr > data/train/train_lc.fr")
     os.system("tr A-Z a-z < data/test/test_2017_flickr.en > data/test/test_2017_flickr_lc.en")
@@ -52,10 +50,10 @@ def make_bpe():
     # translate original data to BPE representation (e.g. English stored in data/train/train.en.BPE)
     os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_en --vocabulary-threshold 50 < data/train/train_lc.en > data/train/train.en.BPE")
     os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_fr --vocabulary-threshold 50 < data/train/train_lc.fr > data/train/train.fr.BPE")
-
-    #TODO analogous treatment for val, test data
-
-
+    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_en --vocabulary-threshold 50 < data/val/val_lc.en > data/val/val.en.BPE")
+    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_fr --vocabulary-threshold 50 < data/val/val_lc.fr > data/val/val.fr.BPE")
+    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_en --vocabulary-threshold 50 < data/test/test_2017_flickr_lc.en > data/test/test_2017_flickr.en.BPE")
+    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_fr --vocabulary-threshold 50 < data/test/test_2017_flickr_lc.fr > data/test/test_2017_flickr.fr.BPE")
 
 # Class to keep track of word indices and counts
 class Lang:

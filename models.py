@@ -25,6 +25,9 @@ class EncoderPositional(nn.Module):
             pos_embedding = self.pos_embedding(torch.tensor(i)).view(-1)
 
             # Concat word and position embedding to create positional embedding
+            # TODO nn.linear ipv cat
+            # TODO teruggeven weights ?
+            # TODO nn.embedding: doet die bovenstaande al?  
             output[i] = torch.cat((word_embedding,pos_embedding))
 
         # Compute hidden state as average over word embeddings

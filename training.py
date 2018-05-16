@@ -6,8 +6,13 @@ from utils import MAX_LENGTH, tensorsFromPair
 import torch
 from torch import optim
 import torch.nn as nn
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+import matplotlib.pyplot as plt
+plt.switch_backend('agg')
+import matplotlib.ticker as ticker
+import numpy as np
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
     start = time.time()
@@ -28,6 +33,8 @@ def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, print_ev
 
     for iter in range(1, n_iters + 1):
         training_pair = training_pairs[iter - 1]
+
+
         input_tensor = training_pair[0]
         target_tensor = training_pair[1]
 
@@ -56,6 +63,7 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
     loss = 0
+
 
     # Init encoder output size
     target_length = target_tensor.size(0)
@@ -102,7 +110,10 @@ def asMinutes(s):
 def timeSince(since, percent):
     now = time.time()
     s = now - since
-    es = s / (percent)
+    try:
+        es = s / (percent)
+    except ZeroDivisionError:
+        es = 0
     rs = es - s
     return '{} (- {})'.format(asMinutes(s), asMinutes(rs))
 
@@ -155,3 +166,12 @@ def train_classic(input_tensor, target_tensor, encoder, decoder, encoder_optimiz
     encoder_optimizer.step()
     decoder_optimizer.step()
     return loss.item() / target_length
+
+
+def showPlot(points):
+    plt.figure()
+    fig, ax = plt.subplots()
+    # this locator puts ticks at regular intervals
+    loc = ticker.MultipleLocator(base=0.2)
+    ax.yaxis.set_major_locator(loc)
+    plt.plot(points)
