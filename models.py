@@ -1,4 +1,3 @@
-from utils import MAX_LENGTH
 import torch
 import torch.nn as nn
 from torch import optim
@@ -9,7 +8,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # embeddings of the sentence concatenated with embeddings of the position of
 # the word.
 class EncoderPositional(nn.Module):
-    def __init__(self, input_size, word_embed_size, pos_embed_size, max_length = MAX_LENGTH):
+    def __init__(self, input_size, word_embed_size, pos_embed_size, max_length):
         super(EncoderPositional,self).__init__()
         self.hidden_size = word_embed_size + pos_embed_size
         self.word_embedding = nn.Embedding(input_size, word_embed_size)
@@ -17,7 +16,7 @@ class EncoderPositional(nn.Module):
         # Create an additional embedding layer for positions
         self.pos_embedding = nn.Embedding(max_length, pos_embed_size)
 
-    def forward(self, inputs, max_length = MAX_LENGTH):
+    def forward(self, inputs, max_length):
         # Transform inputs to embedding matrix
         output = torch.zeros(max_length, self.hidden_size, device=device)
         for i, input in enumerate(inputs):
@@ -45,7 +44,7 @@ class EncoderPositionalSimple(nn.Module):
         self.hidden_size = hidden_size
         self.embedding = nn.Embedding(input_size, hidden_size-1)
 
-    def forward(self, inputs, max_length = MAX_LENGTH):
+    def forward(self, inputs, max_length):
         # Transform inputs to embedding matrix
         output = torch.zeros(max_length, self.hidden_size, device=device)
         for i, input in enumerate(inputs):
@@ -97,7 +96,7 @@ class DecoderRNN(nn.Module):
         return torch.zeros(1, 1, self.hidden_size, device=device)
 
 class AttnDecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size, dropout_p=0.1, max_length=MAX_LENGTH):
+    def __init__(self, hidden_size, output_size, max_length, dropout_p=0.1):
         super(AttnDecoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.output_size = output_size

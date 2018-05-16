@@ -1,5 +1,5 @@
 from __future__ import unicode_literals, print_function, division
-from utils import load_data, Lang, MAX_LENGTH, make_bpe
+from utils import load_data, Lang, make_bpe
 from models import AttnDecoderRNN, EncoderRNN, DecoderRNN,EncoderPositional, EncoderPositionalSimple
 from training import trainIters
 from io import open
@@ -29,7 +29,7 @@ create_bpe = False
 word_embed_size = 256
 pos_embed_size = 20
 hidden_size = word_embed_size + pos_embed_size
-max_length = 50
+max_sent_len = 50
 
 
 # Load corpus
@@ -41,11 +41,11 @@ if create_bpe:
 
 # encoder = EncoderPositionalSimple(input_lang.n_words, hidden_size).to(device)
 # encoder = EncoderRNN(input_lang.n_words, hidden_size).to(device)
-encoder = EncoderPositional(input_lang.n_words, word_embed_size, pos_embed_size).to(device)
+encoder = EncoderPositional(input_lang.n_words, word_embed_size, pos_embed_size,max_sent_len).to(device)
 # encoder = EncoderPositionalSimple(input_lang.n_words, word_embed_size).to(device)
-attn_decoder = AttnDecoderRNN(hidden_size, output_lang.n_words, dropout_p=0.1).to(device)
+attn_decoder = AttnDecoderRNN(hidden_size, output_lang.n_words, max_sent_len,dropout_p=0.1).to(device)
 
-evaluateRandomly(encoder,attn_decoder, input_lang, pairs, max_length, device)
+evaluateRandomly(encoder,attn_decoder, input_lang, output_lang, pairs, max_sent_len, device)
 quit()
 
 # compare sum sum before and after training

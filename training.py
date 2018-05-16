@@ -1,7 +1,7 @@
 import random
 import time
 import math
-from utils import MAX_LENGTH, tensorsFromPair
+from utils import tensorsFromPair
 
 import torch
 from torch import optim
@@ -58,7 +58,7 @@ def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, print_ev
     showPlot(plot_losses)
 
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
-    decoder_optimizer, criterion, max_length=MAX_LENGTH, teacher_forcing_ratio = 0.5):
+    decoder_optimizer, criterion, max_length, teacher_forcing_ratio = 0.5):
     # Init encoder and set gradients to 0
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
@@ -118,7 +118,7 @@ def timeSince(since, percent):
     return '{} (- {})'.format(asMinutes(s), asMinutes(rs))
 
 def train_classic(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
-    decoder_optimizer, criterion, max_length=MAX_LENGTH, teacher_forcing_ratio = 0.5):
+    decoder_optimizer, criterion, max_length, teacher_forcing_ratio = 0.5):
     # Init encoder and set gradients to 0
     encoder_hidden = encoder.initHidden()
     encoder_optimizer.zero_grad()

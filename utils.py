@@ -5,7 +5,6 @@ from glob import glob
 import os
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-MAX_LENGTH = 100
 
 def load_data(data_type):
     if data_type == 'train':
