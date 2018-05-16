@@ -1,5 +1,5 @@
 from __future__ import unicode_literals, print_function, division
-from utils import load_data, preprocess, Lang, MAX_LENGTH
+from utils import load_data, preprocess, Lang, MAX_LENGTH, make_bpe
 from models import AttnDecoderRNN, EncoderRNN, DecoderRNN,EncoderPositional
 from training import trainIters
 from io import open
@@ -13,8 +13,20 @@ import torch
 import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
+#TODO: fix input (small letters etc.)
+#TODO: worden word embeddings geupdatet?
+#TODO: linear neural layer ipv
+
+create_bpe = False
+
+if create_bpe:
+    make_bpe()
+
+quit()
 # Load corpus
 input_lang, output_lang, pairs = load_data('train', 'lowercasing')
 
@@ -30,5 +42,6 @@ encoder = EncoderPositional(input_lang.n_words, word_embed_size, pos_embed_size)
 attn_decoder = AttnDecoderRNN(hidden_size, output_lang.n_words, dropout_p=0.1).to(device)
 
 # Train model
-n_iters = 75000
-trainIters(input_lang, output_lang, pairs, encoder, attn_decoder, n_iters, print_every=50)
+# n_iters = 75000
+n_iters = 100
+trainIters(input_lang, output_lang, pairs, encoder, attn_decoder, n_iters, print_every=1)
