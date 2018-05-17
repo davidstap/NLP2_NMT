@@ -5,6 +5,7 @@ from glob import glob
 import os
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+MAX_LENGTH = 100
 
 def load_data(data_type):
     if data_type == 'train':
@@ -32,7 +33,7 @@ def load_data(data_type):
 def load_file(fn):
     with open(fn, 'r') as f:
         sentences = [s.split() for s in f.read().splitlines()]
-        return sentences[:250]
+        return sentences[:]
 
 def make_bpe():
     # create lowercase files

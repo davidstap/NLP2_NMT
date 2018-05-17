@@ -2,6 +2,7 @@ import torch
 import nltk
 import random
 from utils import tensorFromSentence
+import os
 
 def evaluate(encoder, decoder, sentence, input_lang,output_lang, max_length, device):
     with torch.no_grad():
@@ -43,12 +44,16 @@ def evaluate(encoder, decoder, sentence, input_lang,output_lang, max_length, dev
 def evaluateRandomly(encoder, decoder, input_lang,output_lang, pairs, max_length, device, n=10):
     for i in range(n):
         pair = random.choice(pairs)
-        print('>', pair[0])
-        print('=', pair[1])
+        print('>', ' '.join(w for w in pair[0]))
+        print('>', ' '.join(w for w in pair[1]))
         output_words, attentions = evaluate(encoder, decoder, pair[0], input_lang, output_lang,max_length, device)
         output_sentence = ' '.join(output_words)
         print('<', output_sentence)
         print('')
+
+        os.system("echo '{}' | sed -E 's/(@@ )|(@@ ?$)//g'".format(output_sentence))
+
+
 
 
 def bleu_corpus(references, hypothesis):
