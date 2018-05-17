@@ -55,7 +55,13 @@ def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, max_leng
             plot_losses.append(plot_loss_avg)
             plot_loss_total = 0
 
+        if iter % 10000 == 0:
+            torch.save(encoder.state_dict(), 'trained_models/encoder_it{}'.format(iter))
+            torch.save(decoder.state_dict(), 'trained_models/decoder_it{}'.format(iter))
+
     showPlot(plot_losses)
+
+
 
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
     decoder_optimizer, criterion, max_length, teacher_forcing_ratio = 0.5):
