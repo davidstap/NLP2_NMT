@@ -34,8 +34,10 @@ def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, max_leng
     for iter in range(1, n_iters + 1):
         training_pair = training_pairs[iter - 1]
 
-
+        # Enforce max sentence length
         input_tensor = training_pair[0]
+        if len(input_tensor) > max_length:
+            continue
         target_tensor = training_pair[1]
 
         # Train model using one sentence pair, returns the negative log likelihood
@@ -70,15 +72,32 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
     decoder_optimizer.zero_grad()
     loss = 0
 
-
     # Init encoder output size
     target_length = target_tensor.size(0)
 
     # Loop over input words and compute intermediate outputs and hidden states
-    encoder_outputs, encoder_hidden = encoder(input_tensor, max_length)
+    if 'Positional' in type(encoder).__name__:
+        encoder_outputs, encoder_hidden = encoder(input_tensor)
+    else:
+        # Tuple containing the hidden AND cell state in case of LSTM
+        encoder_hidden = encoder.initHidden()
+        input_length = input_tensor.size(0)
+        encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
+
+        # Loop over input words and compute intermediate outputs and hidden states
+        for ei in range(input_length):
+            encoder_output, encoder_hidden = encoder(
+                input_tensor[ei], encoder_hidden)
+            encoder_outputs[ei] = encoder_output[0, 0]
 
     # Init decoder
     decoder_input = torch.tensor([[0]], device=device)
+
+    # In case of LSTM, unpack hidden state from tuple
+    if isinstance(encoder_hidden,tuple):
+        encoder_hidden = encoder_hidden[0]
+
+    # Initialize decoder hidden state with encoder's context vector
     decoder_hidden = encoder_hidden
     use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
@@ -122,56 +141,6 @@ def timeSince(since, percent):
         es = 0
     rs = es - s
     return '{} (- {})'.format(asMinutes(s), asMinutes(rs))
-
-def train_classic(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
-    decoder_optimizer, criterion, max_length, teacher_forcing_ratio = 0.5):
-    # Init encoder and set gradients to 0
-    encoder_hidden = encoder.initHidden()
-    encoder_optimizer.zero_grad()
-    decoder_optimizer.zero_grad()
-    loss = 0
-
-    # Init encoder output size
-    input_length = input_tensor.size(0)
-    target_length = target_tensor.size(0)
-    encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
-
-    # Loop over input words and compute intermediate outputs and hidden states
-    for ei in range(input_length):
-        encoder_output, encoder_hidden = encoder(
-            input_tensor[ei], encoder_hidden)
-        encoder_outputs[ei] = encoder_output[0, 0]
-
-    # Init decoder
-    decoder_input = torch.tensor([[0]], device=device)
-    decoder_hidden = encoder_hidden
-    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
-
-    if use_teacher_forcing:
-        # Teacher forcing: Feed the target as the next input
-        for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
-            loss += criterion(decoder_output, target_tensor[di])
-            decoder_input = target_tensor[di]  # Teacher forcing
-
-    else:
-        # Without teacher forcing: use its own predictions as the next input
-        for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
-            topv, topi = decoder_output.topk(1)
-            decoder_input = topi.squeeze().detach()  # detach from history as input
-
-            loss += criterion(decoder_output, target_tensor[di])
-            if decoder_input.item() == 1:
-                break
-
-    # Compute loss and gradients, update weights
-    loss.backward()
-    encoder_optimizer.step()
-    decoder_optimizer.step()
-    return loss.item() / target_length
 
 
 def showPlot(points):

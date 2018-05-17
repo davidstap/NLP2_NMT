@@ -11,14 +11,15 @@ class EncoderPositional(nn.Module):
     def __init__(self, input_size, word_embed_size, pos_embed_size, max_length):
         super(EncoderPositional,self).__init__()
         self.hidden_size = word_embed_size + pos_embed_size
+        self.max_length = max_length
         self.word_embedding = nn.Embedding(input_size, word_embed_size)
 
         # Create an additional embedding layer for positions
-        self.pos_embedding = nn.Embedding(max_length, pos_embed_size)
+        self.pos_embedding = nn.Embedding(self.max_length, pos_embed_size)
 
-    def forward(self, inputs, max_length):
+    def forward(self, inputs):
         # Transform inputs to embedding matrix
-        output = torch.zeros(max_length, self.hidden_size, device=device)
+        output = torch.zeros(self.max_length, self.hidden_size, device=device)
         for i, input in enumerate(inputs):
             word_embedding = self.word_embedding(input).view(-1)
             pos_embedding = self.pos_embedding(torch.tensor(i)).view(-1)
@@ -58,9 +59,9 @@ class EncoderPositionalSimple(nn.Module):
         hidden = output[0:len(inputs),:].mean(dim=0).view(1,1,-1)
         return output, hidden
 
-class EncoderRNN(nn.Module):
+class EncoderGRU(nn.Module):
     def __init__(self, input_size, hidden_size):
-        super(EncoderRNN, self).__init__()
+        super(EncoderGRU, self).__init__()
         self.hidden_size = hidden_size
 
         self.embedding = nn.Embedding(input_size, hidden_size)
@@ -68,32 +69,29 @@ class EncoderRNN(nn.Module):
 
     def forward(self, input, hidden):
         embedded = self.embedding(input).view(1, 1, -1)
-        output = embedded
-        output, hidden = self.gru(output, hidden)
+        output, hidden = self.gru(embedded, hidden)
         return output, hidden
 
     def initHidden(self):
         return torch.zeros(1, 1, self.hidden_size, device=device)
 
-class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size):
-        super(DecoderRNN, self).__init__()
+class EncoderLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size):
+        super(EncoderLSTM, self).__init__()
         self.hidden_size = hidden_size
 
-        self.embedding = nn.Embedding(output_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size)
-        self.out = nn.Linear(hidden_size, output_size)
-        self.softmax = nn.LogSoftmax(dim=1)
+        self.embedding = nn.Embedding(input_size, hidden_size)
+        self.lstm = nn.LSTM(hidden_size, hidden_size)
 
     def forward(self, input, hidden):
-        output = self.embedding(input).view(1, 1, -1)
-        output = F.relu(output)
-        output, hidden = self.gru(output, hidden)
-        output = self.softmax(self.out(output[0]))
+        embedded = self.embedding(input).view(1, 1, -1)
+        output, hidden = self.lstm(embedded, hidden)
         return output, hidden
 
     def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
+        return (torch.zeros(1, 1, self.hidden_size, device=device), \
+            torch.zeros(1, 1, self.hidden_size, device=device))
+
 
 class AttnDecoderRNN(nn.Module):
     def __init__(self, hidden_size, output_size, max_length, dropout_p=0.1):
