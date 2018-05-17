@@ -29,12 +29,52 @@ create_bpe = False
 word_embed_size = 256
 pos_embed_size = 20
 hidden_size = word_embed_size + pos_embed_size
-max_sent_len = 100
+max_sent_len = 200
 
 
 # Load corpus
 #TODO: use more data (now only 250 entries, see utils)
 input_lang, output_lang, pairs = load_data('train')
+
+# import numpy as np
+# test = np.array(pairs)
+# print(max([len(x) for x in test[1,:]]))
+
+it=str(200000)
+
+
+
+# encoder = torch.load()
+# decoder = torch.load()
+
+
+
+# encoder.load_state_dict(torch.load('trained_models/encoder_it{}'.format(it)))
+# encoder.load_state_dict(torch.load('trained_models/decoder_it{}'.format(it)))
+encoder = EncoderPositional(input_lang.n_words, word_embed_size, pos_embed_size,max_sent_len).to(device)
+decoder = AttnDecoderRNN(hidden_size, output_lang.n_words, max_sent_len,dropout_p=0.1).to(device)
+
+encoder.load_state_dict(torch.load('trained_models/encoder_it{}'.format(it)))
+decoder.load_state_dict(torch.load('trained_models/decoder_it{}'.format(it)))
+
+print(encoder)
+print(decoder)
+
+encoder.hidden_size=word_embed_size + pos_embed_size
+decoder.hidden_size=word_embed_size + pos_embed_size
+
+
+
+evaluateRandomly(encoder, decoder, input_lang,output_lang, pairs, max_sent_len, device)
+
+
+
+
+
+quit()
+
+
+
 
 if create_bpe:
     make_bpe()
@@ -53,9 +93,9 @@ attn_decoder = AttnDecoderRNN(hidden_size, output_lang.n_words, max_sent_len,dro
 
 # Train model
 # n_iters = 75000
-n_iters = 100
+n_iters = 2900000
 
-trainIters(input_lang, output_lang, pairs, encoder, attn_decoder, n_iters,max_sent_len, print_every=100)
+trainIters(input_lang, output_lang, pairs, encoder, attn_decoder, n_iters,max_sent_len, print_every=2500)
 print('finished training')
 
 # compare sum sum before and after training
@@ -75,4 +115,6 @@ print('finished training')
 #################### Evaluation #####################
 #####################################################
 #TODO: calculate several scores
+#TODO: fix fucking Java TER
+#TODO: add METEOR code
 # bleu_corpus(references, predictions)
