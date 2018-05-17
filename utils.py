@@ -51,12 +51,12 @@ def make_bpe():
     os.system("python subword-nmt/learn_joint_bpe_and_vocab.py --input data/train/train_lc.en data/train/train_lc.fr -s 10000 -o data/bpe/ef_codes --write-vocabulary data/bpe/vocab_file_en data/bpe/vocab_file_fr")
 
     # translate original data to BPE representation (e.g. English stored in data/train/train.en.BPE)
-    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_en --vocabulary-threshold 10 < data/train/train_lc.en > data/train/train.en.BPE")
-    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_fr --vocabulary-threshold 10 < data/train/train_lc.fr > data/train/train.fr.BPE")
-    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_en --vocabulary-threshold 10 < data/val/val_lc.en > data/val/val.en.BPE")
-    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_fr --vocabulary-threshold 10 < data/val/val_lc.fr > data/val/val.fr.BPE")
-    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_en --vocabulary-threshold 10 < data/test/test_2017_flickr_lc.en > data/test/test_2017_flickr.en.BPE")
-    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_fr --vocabulary-threshold 10 < data/test/test_2017_flickr_lc.fr > data/test/test_2017_flickr.fr.BPE")
+    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_en --vocabulary-threshold 1 < data/train/train_lc.en > data/train/train.en.BPE")
+    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_fr --vocabulary-threshold 1 < data/train/train_lc.fr > data/train/train.fr.BPE")
+    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_en --vocabulary-threshold 1 < data/val/val_lc.en > data/val/val.en.BPE")
+    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_fr --vocabulary-threshold 1 < data/val/val_lc.fr > data/val/val.fr.BPE")
+    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_en --vocabulary-threshold 1 < data/test/test_2017_flickr_lc.en > data/test/test_2017_flickr.en.BPE")
+    os.system("python subword-nmt/apply_bpe.py -c data/bpe/ef_codes --vocabulary data/bpe/vocab_file_fr --vocabulary-threshold 1 < data/test/test_2017_flickr_lc.fr > data/test/test_2017_flickr.fr.BPE")
 
 
 def preprocess(fn, newfn):
