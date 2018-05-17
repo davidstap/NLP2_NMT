@@ -1,11 +1,10 @@
 from nltk import word_tokenize
 import torch
+import torch.nn.functional as F
 from itertools import chain
 from glob import glob
 import os
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-MAX_LENGTH = 100
 
 def load_data(data_type):
     if data_type == 'train':
@@ -91,3 +90,9 @@ def tensorsFromPair(input_lang,output_lang,pair):
     input_tensor = tensorFromSentence(input_lang, pair[0])
     target_tensor = tensorFromSentence(output_lang, pair[1])
     return (input_tensor, target_tensor)
+
+# Convert word to vector using encoder
+def embedding_similarity(w1, w2, lang, encoder):
+    w1 = encoder.word_embedding(torch.tensor([lang.word2index[w1]])).view(-1)
+    w2 = encoder.word_embedding(torch.tensor([lang.word2index[w2]])).view(-1)
+    return F.cosine_similarity(w1,w2,0)
