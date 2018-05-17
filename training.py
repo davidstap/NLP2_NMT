@@ -73,6 +73,7 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
     loss = 0
 
     # Init encoder output size
+    input_length = input_tensor.size(0)
     target_length = target_tensor.size(0)
 
     # Loop over input words and compute intermediate outputs and hidden states
@@ -81,7 +82,6 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
     else:
         # Tuple containing the hidden AND cell state in case of LSTM
         encoder_hidden = encoder.initHidden()
-        input_length = input_tensor.size(0)
         encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
         # Loop over input words and compute intermediate outputs and hidden states
@@ -104,16 +104,16 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
     if use_teacher_forcing:
         # Teacher forcing: Feed the target as the next input
         for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
+            decoder_output, decoder_hidden = decoder(
+                decoder_input, decoder_hidden, encoder_outputs, input_length)
             loss += criterion(decoder_output, target_tensor[di])
             decoder_input = target_tensor[di]  # Teacher forcing
 
     else:
         # Without teacher forcing: use its own predictions as the next input
         for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
+            decoder_output, decoder_hidden = decoder(
+                decoder_input, decoder_hidden, encoder_outputs,input_length)
             topv, topi = decoder_output.topk(1)
             decoder_input = topi.squeeze().detach()  # detach from history as input
 

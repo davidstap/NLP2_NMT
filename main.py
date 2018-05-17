@@ -1,6 +1,6 @@
 from __future__ import unicode_literals, print_function, division
 from utils import load_data, Lang, make_bpe, embedding_similarity
-from models import AttnDecoderRNN, EncoderLSTM,EncoderGRU,EncoderPositional
+from models import AttnDecoderRNN, EncoderLSTM,EncoderGRU,EncoderPositional,CustomDecoderRNN
 from training import trainIters
 from io import open
 import unicodedata
@@ -23,7 +23,7 @@ word_embed_size = 256
 pos_embed_size = 20
 hidden_size = word_embed_size + pos_embed_size
 # hidden_size = 256
-max_sent_len = 100
+max_sent_len = 50
 load_pretrained = False
 
 ## Load corpus
@@ -57,6 +57,7 @@ print(embedding_similarity(w1, w2, input_lang, encoder))
 
 
 ## List of things to be done
+#TODO: initialize hidden states with word embedding averages instead of zeros
 #TODO: make predictions
 #TODO: calculate several scores
 #TODO: fix fucking Java TER
