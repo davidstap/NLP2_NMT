@@ -96,7 +96,8 @@ class Lang:
 
 # Return a list of indices for words in a sentence
 def indexesFromSentence(lang, sentence):
-    indexes = []
+    #initialize with BOS token
+    indexes = [0]
     for w in sentence:
         try:
             indexes.append(lang.word2index[w])

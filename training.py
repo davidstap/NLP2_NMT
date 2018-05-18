@@ -2,6 +2,7 @@ import random
 import time
 import math
 from utils import tensorsFromPair
+import pickle
 
 import torch
 from torch import optim
@@ -56,14 +57,13 @@ def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, max_leng
             plot_loss_avg = plot_loss_total / plot_every
             plot_losses.append(plot_loss_avg)
             plot_loss_total = 0
+            pickle.dump(plot_losses, open( "losses_{}.p".format(encoder.__class__.__name__), "wb" ) )
 
-        if iter % 10000 == 0:
-            torch.save(encoder.state_dict(), 'trained_models/encoder_it{}'.format(iter))
+        if iter % 15000 == 0:
+            torch.save(encoder.state_dict(), 'trained_models/encodergru_it{}'.format(iter))
             torch.save(decoder.state_dict(), 'trained_models/decoder_it{}'.format(iter))
 
     showPlot(plot_losses)
-
-
 
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
     decoder_optimizer, criterion, max_length, teacher_forcing_ratio = 0.5):
@@ -84,14 +84,16 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
         input_length = input_tensor.size(0)
         encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
+
+
         # Loop over input words and compute intermediate outputs and hidden states
         for ei in range(input_length):
             encoder_output, encoder_hidden = encoder(
                 input_tensor[ei], encoder_hidden)
             encoder_outputs[ei] = encoder_output[0, 0]
 
-    # Init decoder
-    decoder_input = torch.tensor([[0]], device=device)
+    # Init decoder with BOS (0) token.
+    decoder_input = torch.tensor(0, device=device)
 
     # In case of LSTM, unpack hidden state from tuple
     if isinstance(encoder_hidden,tuple):
@@ -104,22 +106,40 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
     if use_teacher_forcing:
         # Teacher forcing: Feed the target as the next input
         for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
+            if encoder.__class__.__name__ == "EncoderPositional_AIAYN":
+                # also send current pos (di)
+                pos_input = torch.tensor(di, device=device)
+
+                decoder_output, decoder_hidden, decoder_attention = decoder(
+                    decoder_input, pos_input, decoder_hidden, encoder_outputs)
+
+            else:
+                decoder_output, decoder_hidden, decoder_attention = decoder(
+                    decoder_input, decoder_hidden, encoder_outputs)
+
             loss += criterion(decoder_output, target_tensor[di])
             decoder_input = target_tensor[di]  # Teacher forcing
 
     else:
         # Without teacher forcing: use its own predictions as the next input
         for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
+            if encoder.__class__.__name__ == "EncoderPositional_AIAYN":
+                pos_input = torch.tensor(di, device=device)
+                # also send current pos (di)
+                decoder_output, decoder_hidden, decoder_attention = decoder(
+                    decoder_input, pos_input, decoder_hidden, encoder_outputs)
+
+            else:
+                decoder_output, decoder_hidden, decoder_attention = decoder(
+                    decoder_input, decoder_hidden, encoder_outputs)
+
             topv, topi = decoder_output.topk(1)
             decoder_input = topi.squeeze().detach()  # detach from history as input
 
             loss += criterion(decoder_output, target_tensor[di])
             if decoder_input.item() == 1:
                 break
+
 
     # Compute loss and gradients, update weights
     loss.backward()

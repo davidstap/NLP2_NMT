@@ -12,14 +12,17 @@ def evaluate(encoder, decoder, sentence, input_lang,output_lang, max_length, dev
 
         encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
+        if encoder.__class__.__name__ == 'EncoderGRU':
+            #TODO: use 'average sentence?' (instead of all 0s, like told in lecture)
+            encoder_hidden = encoder.initHidden()
+            for ei in range(input_length):
+                encoder_output, encoder_hidden = encoder(input_tensor[ei], encoder_hidden)
+                encoder_outputs[ei] += encoder_output[0, 0]
 
-        # for ei in range(input_length):
-        #     # encoder_output, encoder_hidden = encoder(input_tensor[ei],
-        #                                              # encoder_hidden)
-        #     encoder_output, encoder_hidden = encoder(input_tensor[ei], max_length)
-        #     encoder_outputs[ei] += encoder_output[0, 0]
+        elif encoder.__class__.__name__ == 'EncoderPositional':
+            encoder_outputs, encoder_hidden = encoder(input_tensor)
 
-        encoder_outputs, encoder_hidden = encoder(input_tensor, max_length)
+
 
         decoder_input = torch.tensor([[0]], device=device)  # SOS
         decoder_hidden = encoder_hidden
@@ -61,16 +64,15 @@ def evaluateFile(encoder, decoder, input_lang, output_lang, datatype, savefn, ma
     _, _, pairs = load_data(datatype)
 
     f = open(savefn,'wb')
-    
+
     for pair in pairs:
         input_sentence = reverseBPE(' '.join(w for w in pair[0]))
-
         output_words, attentions = evaluate(encoder, decoder, pair[0], input_lang, output_lang, max_length, device)
-        predi_sentence = reverseBPE(' '.join(output_words))
-
+        predi_sentence = reverseBPE(' '.join(output_words).replace('"', ''))
         f.write(predi_sentence)
 
     f.close()
+
 
 
 def bleu_corpus(referencefn, hypothesisfn):
@@ -79,5 +81,11 @@ def bleu_corpus(referencefn, hypothesisfn):
     # fix correct format for Bleu reference
     references =[[reverseBPE(' '.join(s[1])).split()] for s in ref]
     hypothesis = load_file(hypothesisfn)
+
+    print(references[10])
+    print(hypothesis[10])
+
+    print(nltk.translate.bleu_score.sentence_bleu(references[10], hypothesis[10]))
+
 
     return nltk.translate.bleu_score.corpus_bleu(references, hypothesis)
