@@ -1,8 +1,9 @@
 import torch
 import nltk
 import random
-from utils import tensorFromSentence
+from utils import tensorFromSentence, cmdline
 import os
+from utils import load_data, load_file, reverseBPE
 
 def evaluate(encoder, decoder, sentence, input_lang,output_lang, max_length, device):
     with torch.no_grad():
@@ -44,24 +45,39 @@ def evaluate(encoder, decoder, sentence, input_lang,output_lang, max_length, dev
 def evaluateRandomly(encoder, decoder, input_lang,output_lang, pairs, max_length, device, n=10):
     for i in range(n):
         pair = random.choice(pairs)
-        print('>', ' '.join(w for w in pair[0]))
-        print('>', ' '.join(w for w in pair[1]))
+        input_sentence = ' '.join(w for w in pair[0])
+
+        print('> ', reverseBPE(input_sentence))
+        trans_sentence = ' '.join(w for w in pair[1])
+        print('< ', reverseBPE(trans_sentence))
+
         output_words, attentions = evaluate(encoder, decoder, pair[0], input_lang, output_lang,max_length, device)
         output_sentence = ' '.join(output_words)
-        print('<', output_sentence)
+
+        print('< ', reverseBPE(output_sentence))
         print('')
 
-        os.system("echo '{}' | sed -E 's/(@@ )|(@@ ?$)//g'".format(output_sentence))
+def evaluateFile(encoder, decoder, input_lang, output_lang, datatype, savefn, max_length, device):
+    _, _, pairs = load_data(datatype)
+
+    f = open(savefn,'wb')
+    
+    for pair in pairs:
+        input_sentence = reverseBPE(' '.join(w for w in pair[0]))
+
+        output_words, attentions = evaluate(encoder, decoder, pair[0], input_lang, output_lang, max_length, device)
+        predi_sentence = reverseBPE(' '.join(output_words))
+
+        f.write(predi_sentence)
+
+    f.close()
 
 
+def bleu_corpus(referencefn, hypothesisfn):
+    _,_,ref = load_data(referencefn)
 
+    # fix correct format for Bleu reference
+    references =[[reverseBPE(' '.join(s[1])).split()] for s in ref]
+    hypothesis = load_file(hypothesisfn)
 
-def bleu_corpus(references, hypothesis):
     return nltk.translate.bleu_score.corpus_bleu(references, hypothesis)
-
-# how to use bleu_corpus:
-# references = [[['It', 'is', 'a', 'cat', 'at', 'room']]]
-# hypothesis = [['It', 'is', 'a', 'cat', 'at', 'room']]
-# #there may be several references
-#
-# bleu_corpus(references, hypothesis)
