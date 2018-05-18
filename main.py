@@ -90,7 +90,8 @@ os.system("perl multi-bleu.pl -lc data/test/test_2017_flickr.fr < test_preds_pos
 
 
 ## List of things to be done
-#TODO: teacher forcing ratio higher?
+#TODO: initialize hidden states with word embedding averages instead of zeros
+#TODO: make predictions
 #TODO: calculate several scores
 #TODO: fix fucking Java TER
 #TODO: add METEOR code
