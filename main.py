@@ -24,7 +24,7 @@ create_bpe = False
 word_embed_size = 256
 pos_embed_size = 20
 max_sent_len = 100
-load_pretrained = False
+load_pretrained = True
 architecture = 'LSTM'
 
 ## Load corpus
@@ -58,9 +58,10 @@ elif architecture == 'GRU':
 ## Load pre-trained encoder and decoder
 if load_pretrained:
     print('Loading models...')
-    it=str(20000)
-    encoder.load_state_dict(torch.load('trained_models/encodergru_it{}'.format(it)))
-    decoder.load_state_dict(torch.load('trained_models//decoder_it{}'.format(it)))
+    it=str(300000)
+
+    encoder.load_state_dict(torch.load('trained_models/LSTM/lstm_it{}'.format(it)))
+    decoder.load_state_dict(torch.load('trained_models/LSTM/lstm_decoder_it{}'.format(it)))
 
 ## Train an encoder/decoder from scratch
 else:
@@ -69,17 +70,18 @@ else:
     trainIters(input_lang, output_lang, pairs, encoder, decoder, n_iters,max_sent_len, print_every=1000, plot_every=10)
 
 
-print('FINISHED'), quit()
 
 ## Make predictions
 print('Making predictions...')
-evaluateFile(encoder, decoder, input_lang, output_lang, 'test', 'test_preds_positional_1705.txt', max_sent_len, device)
+evaluateFile(encoder, decoder, input_lang, output_lang, 'test', 'test_preds_{}_it_{}.txt'.format(architecture, it), max_sent_len, device)
 
 ## Calculate evaluation scores
 print('Calculating eval scores...')
 bleu = bleu_corpus('test', 'test_preds_positional_1705.txt')
 print('BLEU score: ',bleu)
 os.system("perl multi-bleu.pl -lc data/test/test_2017_flickr.fr < test_preds_positional_1705.txt")
+
+
 
 ## Evaluate n sentences using pre-trained encoder/decoder
 # n = 10

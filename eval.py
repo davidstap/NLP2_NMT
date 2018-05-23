@@ -12,7 +12,9 @@ def evaluate(encoder, decoder, sentence, input_lang,output_lang, max_length, dev
 
         encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
-        if encoder.__class__.__name__ == 'EncoderGRU':
+        print(encoder.__class__.__name__)
+
+        if encoder.__class__.__name__ == 'EncoderGRU' or encoder.__class__.__name__ == 'EncoderLSTM':
             #TODO: use 'average sentence?' (instead of all 0s, like told in lecture)
             encoder_hidden = encoder.initHidden()
             for ei in range(input_length):

@@ -137,3 +137,18 @@ def embedding_similarity(w1, w2, lang, encoder):
     w1 = encoder.word_embedding(torch.tensor([lang.word2index[w1]])).view(-1)
     w2 = encoder.word_embedding(torch.tensor([lang.word2index[w2]])).view(-1)
     return F.cosine_similarity(w1,w2,0)
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pickle
+import seaborn as sns
+sns.set()
+
+def make_plot(fn):
+    # assumption: los every 10 steps
+    y = pickle.load(open(fn, 'rb'))
+    x = np.arange(10,len(y)*10+1,10)
+    plt.plot(x[0::15],y[0::15])
+    plt.ylabel('loss')
+    plt.xlabel('iteration')
+    plt.show()

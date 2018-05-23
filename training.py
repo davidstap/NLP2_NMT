@@ -60,8 +60,8 @@ def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, max_leng
             pickle.dump(plot_losses, open( "losses_{}.p".format(encoder.__class__.__name__), "wb" ) )
 
         if iter % 15000 == 0:
-            torch.save(encoder.state_dict(), 'trained_models/encodergru_it{}'.format(iter))
-            torch.save(decoder.state_dict(), 'trained_models/decoder_it{}'.format(iter))
+            torch.save(encoder.state_dict(), 'trained_models/lstm_it{}'.format(iter))
+            torch.save(decoder.state_dict(), 'trained_models/lstm_decoder_it{}'.format(iter))
 
     showPlot(plot_losses)
 

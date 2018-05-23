@@ -26,6 +26,7 @@ class EncoderPositional(nn.Module):
             pos_embedding = self.pos_embedding(torch.tensor(i)).view(-1)
 
             # Concat word and position embedding to create positional embedding
+            # TODO nn.linear ipv cat
             output[i] = torch.cat((word_embedding,pos_embedding))
 
         # Compute hidden state as average over word embeddings
@@ -140,57 +141,6 @@ class EncoderLSTM(nn.Module):
         return (torch.zeros(1, 1, self.hidden_size, device=device), \
             torch.zeros(1, 1, self.hidden_size, device=device))
 
-class CustomDecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size, max_length, bilinear=False,dropout_p=None):
-        super(CustomDecoderRNN, self).__init__()
-        self.hidden_size = hidden_size
-        self.output_size = output_size
-        self.max_length = max_length
-        self.bilinear = bilinear
-
-        self.embedding = nn.Embedding(self.output_size, self.hidden_size)
-        self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
-        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
-        self.out = nn.Linear(self.hidden_size, self.output_size)
-
-    def forward(self, input, hidden, encoder_outputs, src_len):
-        embedded = self.embedding(input).view(1, 1, -1)
-
-        # Compute hidden state using 'standard' decoder
-        output, hidden = self.gru(embedded, hidden)
-
-        # Compute scores by dot product/bilinear of decoder hidden state and encoder hidden states
-        if self.bilinear == False:
-            # Scoring function is simple dot product
-            scores = torch.mm(hidden.squeeze(0), torch.transpose(encoder_outputs,0,1))
-        else:
-            # TODO implement bilinear scoring function (called general in paper)
-            scores = None
-
-        # Normalize to obtain weights for weighted average over encoder's hidden states
-        attn_weights = torch.zeros(1,encoder_outputs.shape[0])
-
-        # Perform softmax over the encoder's actual hidden states only instead of over all
-        # (partly non existent, all zeros) states
-        attn_weights[0,0:src_len] = F.softmax(scores[0,0:src_len],dim=0)
-
-        # Get weighted avr of encoder hidden states using attn_weights (alpha)
-        c = torch.bmm(attn_weights.unsqueeze(0),
-                    encoder_outputs.unsqueeze(0))
-
-        # Concat c with current decoder hidden state
-        conc = torch.cat((hidden,c), dim=2)
-
-        # Feed concatenation through linear layer to obtain 'final' decoder hidden state
-        hidden = self.attn_combine(conc)
-
-        # Compute distribution over target vocabulary using hidden state
-        output = F.log_softmax(self.out(hidden[0]), dim=1)
-        return output, hidden
-
-    def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
-
 
 class AttnDecoderRNN(nn.Module):
     def __init__(self, hidden_size, output_size, max_length, dropout_p=0.1):
@@ -207,7 +157,7 @@ class AttnDecoderRNN(nn.Module):
         self.gru = nn.GRU(self.hidden_size, self.hidden_size)
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
-    def forward(self, input, hidden, encoder_outputs, src_len=None):
+    def forward(self, input, hidden, encoder_outputs):
         embedded = self.embedding(input).view(1, 1, -1)
         embedded = self.dropout(embedded)
 
@@ -223,7 +173,7 @@ class AttnDecoderRNN(nn.Module):
         output, hidden = self.gru(output, hidden)
 
         output = F.log_softmax(self.out(output[0]), dim=1)
-        return output, hidden
+        return output, hidden, attn_weights
 
     def initHidden(self):
         return torch.zeros(1, 1, self.hidden_size, device=device)
