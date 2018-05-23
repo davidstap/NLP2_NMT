@@ -5,18 +5,25 @@ from utils import tensorFromSentence, cmdline
 import os
 from utils import load_data, load_file, reverseBPE
 
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+
 def evaluate(encoder, decoder, sentence, input_lang,output_lang, max_length, device):
     with torch.no_grad():
         input_tensor = tensorFromSentence(input_lang, sentence)
         input_length = input_tensor.size()[0]
 
+
+
         encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
         if encoder.__class__.__name__ == 'EncoderGRU' or encoder.__class__.__name__ == 'EncoderLSTM':
             encoder_hidden = encoder.initHidden()
+
             for ei in range(input_length):
                 encoder_output, encoder_hidden = encoder(input_tensor[ei], encoder_hidden)
                 encoder_outputs[ei] += encoder_output[0, 0]
+
 
         elif encoder.__class__.__name__ == 'EncoderPositional':
             encoder_outputs, encoder_hidden = encoder(input_tensor)
@@ -33,6 +40,8 @@ def evaluate(encoder, decoder, sentence, input_lang,output_lang, max_length, dev
             decoder_output, decoder_hidden, decoder_attention = decoder(
                 decoder_input, decoder_hidden, encoder_outputs)
             #TODO encoder_outputs --> encoder_hidden?
+
+
 
 
             decoder_attentions[di] = decoder_attention.data
@@ -74,6 +83,49 @@ def evaluateFile(encoder, decoder, input_lang, output_lang, datatype, savefn, ma
 
     f.close()
 
+# def showAttention(input_sentence, output_words, attentions):
+#     # Set up figure with colorbar
+#     fig = plt.figure()
+#     ax = fig.add_subplot(111)
+#     cax = ax.matshow(attentions.numpy(), cmap='bone')
+#     fig.colorbar(cax)
+#
+#     print(input_sentence, output_words)
+#
+#     # Set up axes
+#     x = [''] + input_sentence.split(' ') + ['<EOS>']
+#     x = [w.encode('utf-8') for w in x]
+#     y = [''] + output_words
+#     y = [w.encode('utf-8') for w in y]
+#     ax.set_xticklabels(x, rotation=90)
+#     ax.set_yticklabels(y)
+#
+#
+#
+#
+#
+#     # Show label at every tick
+#     ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+#     ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+#
+#     plt.show()
+
+# from visuals import showAttention
+import pickle
+def evaluateAndShowAttention(input_sentence, encoder, decoder, input_lang, output_lang, max_length, device):
+    output_words, attentions = evaluate(encoder, decoder, input_sentence, input_lang, output_lang, max_length, device)
+    print('input =', input_sentence)
+    print('output =', ' '.join(output_words))
+
+
+    # input BPE
+    pickle.dump(attentions.numpy(), open('attention','wb'))
+    pickle.dump(input_sentence, open('input','wb'))
+    pickle.dump(output_words, open('output','wb'))
+    quit()
+    showAttention(input_sentence, output_words, attentions)
+
+
 
 
 def bleu_corpus(referencefn, hypothesisfn):
@@ -82,11 +134,5 @@ def bleu_corpus(referencefn, hypothesisfn):
     # fix correct format for Bleu reference
     references =[[reverseBPE(' '.join(s[1])).split()] for s in ref]
     hypothesis = load_file(hypothesisfn)
-
-    print(references[10])
-    print(hypothesis[10])
-
-    print(nltk.translate.bleu_score.sentence_bleu(references[10], hypothesis[10]))
-
 
     return nltk.translate.bleu_score.corpus_bleu(references, hypothesis)
