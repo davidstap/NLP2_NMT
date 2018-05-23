@@ -12,10 +12,7 @@ def evaluate(encoder, decoder, sentence, input_lang,output_lang, max_length, dev
 
         encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
-        print(encoder.__class__.__name__)
-
         if encoder.__class__.__name__ == 'EncoderGRU' or encoder.__class__.__name__ == 'EncoderLSTM':
-            #TODO: use 'average sentence?' (instead of all 0s, like told in lecture)
             encoder_hidden = encoder.initHidden()
             for ei in range(input_length):
                 encoder_output, encoder_hidden = encoder(input_tensor[ei], encoder_hidden)
@@ -24,16 +21,19 @@ def evaluate(encoder, decoder, sentence, input_lang,output_lang, max_length, dev
         elif encoder.__class__.__name__ == 'EncoderPositional':
             encoder_outputs, encoder_hidden = encoder(input_tensor)
 
-
-
         decoder_input = torch.tensor([[0]], device=device)  # SOS
         decoder_hidden = encoder_hidden
         decoded_words = []
         decoder_attentions = torch.zeros(max_length, max_length)
 
+        if encoder.__class__.__name__ == 'EncoderLSTM':
+            decoder_hidden = decoder_hidden[0]
+
         for di in range(max_length):
             decoder_output, decoder_hidden, decoder_attention = decoder(
                 decoder_input, decoder_hidden, encoder_outputs)
+            #TODO encoder_outputs --> encoder_hidden?
+
 
             decoder_attentions[di] = decoder_attention.data
             topv, topi = decoder_output.data.topk(1)
@@ -65,10 +65,9 @@ def evaluateRandomly(encoder, decoder, input_lang,output_lang, pairs, max_length
 def evaluateFile(encoder, decoder, input_lang, output_lang, datatype, savefn, max_length, device):
     _, _, pairs = load_data(datatype)
 
-    f = open(savefn,'wb')
+    f = open('predictions/'+savefn,'wb')
 
     for pair in pairs:
-        input_sentence = reverseBPE(' '.join(w for w in pair[0]))
         output_words, attentions = evaluate(encoder, decoder, pair[0], input_lang, output_lang, max_length, device)
         predi_sentence = reverseBPE(' '.join(output_words).replace('"', ''))
         f.write(predi_sentence)

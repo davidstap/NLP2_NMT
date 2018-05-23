@@ -7,6 +7,11 @@ import os
 from subprocess import PIPE, Popen
 from nltk import RegexpTokenizer
 import string
+import matplotlib.pyplot as plt
+import numpy as np
+import pickle
+import seaborn as sns
+sns.set()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -130,19 +135,13 @@ def cmdline(command):
     return process.communicate()[0]
 
 def reverseBPE(s):
-    return cmdline('echo "{}" | sed -E "s/(@@ )|(@@ ?$)//g"'.format(s.replace("<EOS>", "")))
+    return cmdline('echo "{}" | sed -E "s/(@@ )|(@@ ?$)//g"'.format(s.replace("<EOS>", "").replace("SOS","")))
 
 # Convert word to vector using encoder
 def embedding_similarity(w1, w2, lang, encoder):
     w1 = encoder.word_embedding(torch.tensor([lang.word2index[w1]])).view(-1)
     w2 = encoder.word_embedding(torch.tensor([lang.word2index[w2]])).view(-1)
     return F.cosine_similarity(w1,w2,0)
-
-import matplotlib.pyplot as plt
-import numpy as np
-import pickle
-import seaborn as sns
-sns.set()
 
 def make_plot(fn):
     # assumption: los every 10 steps

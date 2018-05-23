@@ -25,13 +25,15 @@ word_embed_size = 256
 pos_embed_size = 20
 max_sent_len = 100
 load_pretrained = True
+it = str(300000)    #if loading pretrained, choose iteration to load
+lr=0.0005
 architecture = 'LSTM'
 
-## Load corpus
+## Create Byte Pair Encodings
 if create_bpe:
     make_bpe()
 
-
+## Load corpus
 input_lang, output_lang, pairs = load_data('train')
 
 ## Define encoder and decoder
@@ -58,30 +60,30 @@ elif architecture == 'GRU':
 ## Load pre-trained encoder and decoder
 if load_pretrained:
     print('Loading models...')
-    it=str(300000)
-
+    # encoder.load_state_dict(torch.load('trained_models/GRU/encodergru_it{}'.format(it)))
+    # decoder.load_state_dict(torch.load('trained_models/GRU/decoder_it{}'.format(it)))
     encoder.load_state_dict(torch.load('trained_models/LSTM/lstm_it{}'.format(it)))
     decoder.load_state_dict(torch.load('trained_models/LSTM/lstm_decoder_it{}'.format(it)))
+    # encoder.load_state_dict(torch.load('trained_models/positional/encoderpositional_it{}'.format(it)))
+    # decoder.load_state_dict(torch.load('trained_models/positional/decoder_it{}'.format(it)))
 
 ## Train an encoder/decoder from scratch
 else:
     print('Training model...')
     n_iters = 300000
-    trainIters(input_lang, output_lang, pairs, encoder, decoder, n_iters,max_sent_len, print_every=1000, plot_every=10)
-
+    trainIters(input_lang, output_lang, pairs, encoder, decoder, n_iters,max_sent_len, learning_rate=lr, print_every=100, plot_every=10)
 
 
 ## Make predictions
 print('Making predictions...')
-evaluateFile(encoder, decoder, input_lang, output_lang, 'test', 'test_preds_{}_it_{}.txt'.format(architecture, it), max_sent_len, device)
+savefn='test_preds_{}_it_{}.txt'.format(architecture, it)
+evaluateFile(encoder, decoder, input_lang, output_lang, 'test', savefn, max_sent_len, device)
 
 ## Calculate evaluation scores
 print('Calculating eval scores...')
-bleu = bleu_corpus('test', 'test_preds_positional_1705.txt')
+bleu = bleu_corpus('test', 'predictions/{}'.format(savefn))
 print('BLEU score: ',bleu)
-os.system("perl multi-bleu.pl -lc data/test/test_2017_flickr.fr < test_preds_positional_1705.txt")
-
-
+os.system("perl multi-bleu.pl -lc data/test/test_2017_flickr.fr < predictions/{}".format(savefn))
 
 ## Evaluate n sentences using pre-trained encoder/decoder
 # n = 10
@@ -97,6 +99,5 @@ os.system("perl multi-bleu.pl -lc data/test/test_2017_flickr.fr < test_preds_pos
 #TODO: calculate several scores
 #TODO: fix fucking Java TER
 #TODO: add METEOR code
-#TODO: fix input (small letters etc.)
 #TODO: worden word embeddings geupdatet?
 #TODO: linear neural layer ipv

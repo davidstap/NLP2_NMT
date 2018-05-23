@@ -57,11 +57,11 @@ def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, max_leng
             plot_loss_avg = plot_loss_total / plot_every
             plot_losses.append(plot_loss_avg)
             plot_loss_total = 0
-            pickle.dump(plot_losses, open( "losses_{}.p".format(encoder.__class__.__name__), "wb" ) )
+            pickle.dump(plot_losses, open( "losses/{}.p".format(encoder.__class__.__name__), "wb" ) )
 
         if iter % 15000 == 0:
-            torch.save(encoder.state_dict(), 'trained_models/lstm_it{}'.format(iter))
-            torch.save(decoder.state_dict(), 'trained_models/lstm_decoder_it{}'.format(iter))
+            torch.save(encoder.state_dict(), 'trained_models/{}/encoder_it{}'.format(encoder.__class__.__name__,iter))
+            torch.save(decoder.state_dict(), 'trained_models/{}/decoder_it{}'.format(encoder.__class__.__name__,iter))
 
     showPlot(plot_losses)
 
@@ -112,7 +112,6 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
 
                 decoder_output, decoder_hidden, decoder_attention = decoder(
                     decoder_input, pos_input, decoder_hidden, encoder_outputs)
-
             else:
                 decoder_output, decoder_hidden, decoder_attention = decoder(
                     decoder_input, decoder_hidden, encoder_outputs)
