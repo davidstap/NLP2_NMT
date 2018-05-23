@@ -14,9 +14,8 @@ class EncoderPositional(nn.Module):
         self.hidden_size = word_embed_size + pos_embed_size
         self.max_length = max_length
         self.word_embedding = nn.Embedding(input_size, word_embed_size)
-
-        # Create an additional embedding layer for positions
         self.pos_embedding = nn.Embedding(self.max_length, pos_embed_size)
+        self.embed_combine = nn.Linear(self.hidden_size, self.hidden_size)
 
     def forward(self, inputs):
         # Transform inputs to embedding matrix
@@ -24,10 +23,8 @@ class EncoderPositional(nn.Module):
         for i, input in enumerate(inputs):
             word_embedding = self.word_embedding(input).view(-1)
             pos_embedding = self.pos_embedding(torch.tensor(i)).view(-1)
-
-            # Concat word and position embedding to create positional embedding
-            # TODO nn.linear ipv cat
-            output[i] = torch.cat((word_embedding,pos_embedding))
+            c = torch.cat((word_embedding,pos_embedding))
+            output[i] = F.sigmoid(self.embed_combine(c))
 
         # Compute hidden state as average over word embeddings
         hidden = output[0:len(inputs),:].mean(dim=0).view(1,1,-1)
