@@ -1,7 +1,8 @@
 from __future__ import unicode_literals, print_function, division
 from utils import load_data, Lang, make_bpe, embedding_similarity
 from models import AttnDecoderRNN, EncoderLSTM,EncoderGRU,EncoderPositional
-from models import EncoderPositional_AIAYN, AttnDecoderRNN_AIAYN
+from models import EncoderPositional_AIAYN
+from eval import evaluate, evaluateFile, evaluateRandomly, bleu_corpus, evaluateAndShowAttention
 from training import trainIters
 from io import open
 import unicodedata
@@ -9,7 +10,6 @@ import string
 import re
 import os
 import random
-from eval import evaluate, evaluateFile, evaluateRandomly, bleu_corpus
 
 # Pytorch imports
 import torch
@@ -25,9 +25,11 @@ word_embed_size = 256
 pos_embed_size = 20
 max_sent_len = 100
 load_pretrained = True
-it = str(300000)    #if loading pretrained, choose iteration to load
-lr=0.0005
-architecture = 'LSTM'
+it = str(190000)    #if loading pretrained, choose iteration to load
+train = True
+train_iters = 110000
+lr=0.001
+architecture = 'positional'
 
 ## Create Byte Pair Encodings
 if create_bpe:
@@ -38,9 +40,9 @@ input_lang, output_lang, pairs = load_data('train')
 
 ## Define encoder and decoder
 if architecture == 'AIAYN':
-    hidden_size = word_embed_size
-    encoder = EncoderPositional_AIAYN(input_lang.n_words, word_embed_size, max_sent_len)
-    decoder = AttnDecoderRNN_AIAYN(hidden_size, output_lang.n_words, max_sent_len, dropout_p=0.1)
+    hidden_size = word_embed_size + pos_embed_size
+    encoder = EncoderPositional_AIAYN(input_lang.n_words, word_embed_size, pos_embed_size, max_sent_len)
+    decoder = AttnDecoderRNN(hidden_size, output_lang.n_words, max_sent_len, dropout_p=0.1)
 
 elif architecture == 'positional':
     hidden_size = word_embed_size + pos_embed_size
@@ -62,18 +64,23 @@ if load_pretrained:
     print('Loading models...')
     # encoder.load_state_dict(torch.load('trained_models/GRU/encodergru_it{}'.format(it)))
     # decoder.load_state_dict(torch.load('trained_models/GRU/decoder_it{}'.format(it)))
-    encoder.load_state_dict(torch.load('trained_models/LSTM/lstm_it{}'.format(it)))
-    decoder.load_state_dict(torch.load('trained_models/LSTM/lstm_decoder_it{}'.format(it)))
+    encoder.load_state_dict(torch.load('trained_models/EncoderPositional1/encoder_it{}'.format(it)))
+    decoder.load_state_dict(torch.load('trained_models/EncoderPositional1/decoder_it{}'.format(it)))
     # encoder.load_state_dict(torch.load('trained_models/positional/encoderpositional_it{}'.format(it)))
     # decoder.load_state_dict(torch.load('trained_models/positional/decoder_it{}'.format(it)))
 
 ## Train an encoder/decoder from scratch
-else:
+if train:
     print('Training model...')
-    n_iters = 300000
-    trainIters(input_lang, output_lang, pairs, encoder, decoder, n_iters,max_sent_len, learning_rate=lr, print_every=100, plot_every=10)
+    trainIters(input_lang, output_lang, pairs, encoder, decoder, train_iters,max_sent_len, learning_rate=lr, print_every=1000, plot_every=10)
 
 
+
+
+# input_sentence='an older man is skydiving'
+# evaluateAndShowAttention(input_sentence, encoder, decoder, input_lang, output_lang, max_sent_len, device)
+
+quit()
 ## Make predictions
 print('Making predictions...')
 savefn='test_preds_{}_it_{}.txt'.format(architecture, it)

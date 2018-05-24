@@ -34,33 +34,32 @@ class EncoderPositional(nn.Module):
         return torch.zeros(1, 1, self.hidden_size, device=device)
 
 
-def position_encoding_init(n_position, d_pos_vec):
+def AIAYN_attention_init(max_length, pos_embed_size):
     ''' Init the sinusoid position encoding table '''
 
     # keep dim 0 for padding token position encoding zero vector
-    position_enc = np.array([
-        [pos / np.power(10000, 2*i/d_pos_vec) for i in range(d_pos_vec)]
-        if pos != 0 else np.zeros(d_pos_vec) for pos in range(n_position)])
+    attention_init = np.array([
+        [pos / np.power(10000, 2*i/pos_embed_size) for i in range(pos_embed_size)]
+        if pos != 0 else np.zeros(pos_embed_size) for pos in range(max_length)])
 
-    position_enc[1:, 0::2] = np.sin(position_enc[1:, 0::2]) # dim 2i
-    position_enc[1:, 1::2] = np.cos(position_enc[1:, 1::2]) # dim 2i+1
-    return torch.from_numpy(position_enc).type(torch.FloatTensor)
+    attention_init[1:, 0::2] = np.sin(attention_init[1:, 0::2]) # dim 2i
+    attention_init[1:, 1::2] = np.cos(attention_init[1:, 1::2]) # dim 2i+1
+    return torch.from_numpy(attention_init).type(torch.FloatTensor)
 
 # Positional Encoder that outputs a 'sentence matrix' containing all word
 # embeddings of the sentence concatenated with embeddings of the position of
 # the word.
 class EncoderPositional_AIAYN(nn.Module):
-    def __init__(self, input_size, word_embed_size, max_length):
-        super(EncoderPositional_AIAYN,self).__init__()
-        self.hidden_size = word_embed_size
+    def __init__(self, input_size, word_embed_size, pos_embed_size, max_length):
+        super(EncoderPositional_AIAYN, self).__init__()
+        self.hidden_size = word_embed_size + pos_embed_size
         self.max_length = max_length
-
         self.word_embedding = nn.Embedding(input_size, word_embed_size)
+        self.pos_embedding = nn.Embedding(self.max_length, pos_embed_size)
+        self.embed_combine = nn.Linear(self.hidden_size, self.hidden_size)
 
-        # Create an additional embedding layer for positions
-        # self.pos_embedding = nn.Embedding(self.max_length, pos_embed_size)
-        self.pos_embedding = nn.Embedding(self.max_length, word_embed_size)
-        self.pos_embedding.weight.data = position_encoding_init(self.max_length, word_embed_size)
+        # Initialize sinuslike (as in AIAYN)
+        self.pos_embedding.weight.data = AIAYN_attention_init(self.max_length, pos_embed_size)
 
     def forward(self, inputs):
         # Transform inputs to embedding matrix
@@ -68,9 +67,8 @@ class EncoderPositional_AIAYN(nn.Module):
         for i, input in enumerate(inputs):
             word_embedding = self.word_embedding(input).view(-1)
             pos_embedding = self.pos_embedding(torch.tensor(i)).view(-1)
-
-            output[i] = word_embedding + pos_embedding
-
+            c = torch.cat((word_embedding,pos_embedding))
+            output[i] = F.sigmoid(self.embed_combine(c))
 
         # Compute hidden state as average over word embeddings
         hidden = output[0:len(inputs),:].mean(dim=0).view(1,1,-1)
@@ -78,6 +76,34 @@ class EncoderPositional_AIAYN(nn.Module):
 
     def initHidden(self):
         return torch.zeros(1, 1, self.hidden_size, device=device)
+    # def __init__(self, input_size, word_embed_size, max_length):
+    #     super(EncoderPositional_AIAYN,self).__init__()
+    #     self.hidden_size = word_embed_size
+    #     self.max_length = max_length
+    #     self.word_embedding = nn.Embedding(input_size, word_embed_size)
+    #
+    #     # Create an additional embedding layer for positions
+    #     # self.pos_embedding = nn.Embedding(self.max_length, pos_embed_size)
+    #     self.pos_embedding = nn.Embedding(self.max_length, word_embed_size)
+    #     self.pos_embedding.weight.data = AIAYN_attention_init(self.max_length, word_embed_size)
+    #
+    #     self.embed_combine = nn.Linear(self.hidden_size, self.hidden_size)
+    # def forward(self, inputs):
+    #     # Transform inputs to embedding matrix
+    #     output = torch.zeros(self.max_length, self.hidden_size, device=device)
+    #     for i, input in enumerate(inputs):
+    #         word_embedding = self.word_embedding(input).view(-1)
+    #         pos_embedding = self.pos_embedding(torch.tensor(i)).view(-1)
+    #
+    #         # output[i] = word_embedding + pos_embedding
+    #         output[i] = F.sigmoid(self.embed_combine(word_embedding + pos_embedding))
+    #
+    #     # Compute hidden state as average over word embeddings
+    #     hidden = output[0:len(inputs),:].mean(dim=0).view(1,1,-1)
+    #     return output, hidden
+    #
+    # def initHidden(self):
+    #     return torch.zeros(1, 1, self.hidden_size, device=device)
 
 
 
@@ -175,46 +201,44 @@ class AttnDecoderRNN(nn.Module):
     def initHidden(self):
         return torch.zeros(1, 1, self.hidden_size, device=device)
 
-class AttnDecoderRNN_AIAYN(nn.Module):
-    def __init__(self, hidden_size, output_size, max_length, dropout_p=0.1):
-        super(AttnDecoderRNN_AIAYN, self).__init__()
-        self.hidden_size = hidden_size
-        self.output_size = output_size
-        self.dropout_p = dropout_p
-        self.max_length = max_length
-
-        self.word_embedding = nn.Embedding(self.output_size, self.hidden_size)
-        self.pos_embedding = nn.Embedding(self.output_size, self.hidden_size)
-        self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
-        self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
-        self.dropout = nn.Dropout(self.dropout_p)
-        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
-        self.out = nn.Linear(self.hidden_size, self.output_size)
-
-    def forward(self, input, pos, hidden, encoder_outputs):
-
-
-        # include positional embedding
-        embedded = self.word_embedding(input).view(1, 1, -1)
-        embedded += self.pos_embedding(pos).view(1,1,-1)
-
-        embedded = self.dropout(embedded)
-
-        #TODO: further change below?
-
-        attn_weights = F.softmax(
-            self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
-        attn_applied = torch.bmm(attn_weights.unsqueeze(0),
-                                 encoder_outputs.unsqueeze(0))
-
-        output = torch.cat((embedded[0], attn_applied[0]), 1)
-        output = self.attn_combine(output).unsqueeze(0)
-
-        output = F.relu(output)
-        output, hidden = self.gru(output, hidden)
-
-        output = F.log_softmax(self.out(output[0]), dim=1)
-        return output, hidden, attn_weights
-
-    def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
+# class AttnDecoderRNN_AIAYN(nn.Module):
+#     def __init__(self, hidden_size, output_size, max_length, dropout_p=0.1):
+#         super(AttnDecoderRNN_AIAYN, self).__init__()
+#         self.hidden_size = hidden_size
+#         self.output_size = output_size
+#         self.dropout_p = dropout_p
+#         self.max_length = max_length
+#
+#         self.word_embedding = nn.Embedding(self.output_size, self.hidden_size)
+#         self.pos_embedding = nn.Embedding(self.output_size, self.hidden_size)
+#         self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
+#         self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
+#         self.dropout = nn.Dropout(self.dropout_p)
+#         self.gru = nn.GRU(self.hidden_size, self.hidden_size)
+#         self.out = nn.Linear(self.hidden_size, self.output_size)
+#
+#     def forward(self, input, pos, hidden, encoder_outputs):
+#
+#
+#         # include positional embedding
+#         embedded = self.word_embedding(input).view(1, 1, -1)
+#         embedded += self.pos_embedding(pos).view(1,1,-1)
+#         embedded = self.dropout(embedded)
+#
+#
+#         attn_weights = F.softmax(
+#             self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
+#         attn_applied = torch.bmm(attn_weights.unsqueeze(0),
+#                                  encoder_outputs.unsqueeze(0))
+#
+#         output = torch.cat((embedded[0], attn_applied[0]), 1)
+#         output = self.attn_combine(output).unsqueeze(0)
+#
+#         output = F.relu(output)
+#         output, hidden = self.gru(output, hidden)
+#
+#         output = F.log_softmax(self.out(output[0]), dim=1)
+#         return output, hidden, attn_weights
+#
+#     def initHidden(self):
+#         return torch.zeros(1, 1, self.hidden_size, device=device)

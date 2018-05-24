@@ -59,7 +59,7 @@ def trainIters(input_lang,output_lang,pairs, encoder, decoder, n_iters, max_leng
             plot_loss_total = 0
             pickle.dump(plot_losses, open( "losses/{}.p".format(encoder.__class__.__name__), "wb" ) )
 
-        if iter % 15000 == 0:
+        if iter % 10000 == 0:
             torch.save(encoder.state_dict(), 'trained_models/{}/encoder_it{}'.format(encoder.__class__.__name__,iter))
             torch.save(decoder.state_dict(), 'trained_models/{}/decoder_it{}'.format(encoder.__class__.__name__,iter))
 
@@ -106,15 +106,15 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
     if use_teacher_forcing:
         # Teacher forcing: Feed the target as the next input
         for di in range(target_length):
-            if encoder.__class__.__name__ == "EncoderPositional_AIAYN":
-                # also send current pos (di)
-                pos_input = torch.tensor(di, device=device)
-
-                decoder_output, decoder_hidden, decoder_attention = decoder(
-                    decoder_input, pos_input, decoder_hidden, encoder_outputs)
-            else:
-                decoder_output, decoder_hidden, decoder_attention = decoder(
-                    decoder_input, decoder_hidden, encoder_outputs)
+            # if encoder.__class__.__name__ == "EncoderPositional_AIAYN":
+            #     # also send current pos (di)
+            #     pos_input = torch.tensor(di, device=device)
+            #
+            #     decoder_output, decoder_hidden, decoder_attention = decoder(
+            #         decoder_input, pos_input, decoder_hidden, encoder_outputs)
+            # else:
+            decoder_output, decoder_hidden, decoder_attention = decoder(
+                decoder_input, decoder_hidden, encoder_outputs)
 
             loss += criterion(decoder_output, target_tensor[di])
             decoder_input = target_tensor[di]  # Teacher forcing
@@ -122,15 +122,14 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, \
     else:
         # Without teacher forcing: use its own predictions as the next input
         for di in range(target_length):
-            if encoder.__class__.__name__ == "EncoderPositional_AIAYN":
-                pos_input = torch.tensor(di, device=device)
-                # also send current pos (di)
-                decoder_output, decoder_hidden, decoder_attention = decoder(
-                    decoder_input, pos_input, decoder_hidden, encoder_outputs)
-
-            else:
-                decoder_output, decoder_hidden, decoder_attention = decoder(
-                    decoder_input, decoder_hidden, encoder_outputs)
+            # if encoder.__class__.__name__ == "EncoderPositional_AIAYN":
+            #     pos_input = torch.tensor(di, device=device)
+            #     # also send current pos (di)
+            #     decoder_output, decoder_hidden, decoder_attention = decoder(
+            #         decoder_input, pos_input, decoder_hidden, encoder_outputs)
+            # else:
+            decoder_output, decoder_hidden, decoder_attention = decoder(
+                decoder_input, decoder_hidden, encoder_outputs)
 
             topv, topi = decoder_output.topk(1)
             decoder_input = topi.squeeze().detach()  # detach from history as input
