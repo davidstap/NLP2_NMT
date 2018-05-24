@@ -25,7 +25,7 @@ def evaluate(encoder, decoder, sentence, input_lang,output_lang, max_length, dev
                 encoder_outputs[ei] += encoder_output[0, 0]
 
 
-        elif encoder.__class__.__name__ == 'EncoderPositional':
+        elif encoder.__class__.__name__ == 'EncoderPositional' or encoder.__class__.__name__ == 'EncoderPositional_AIAYN':
             encoder_outputs, encoder_hidden = encoder(input_tensor)
 
         decoder_input = torch.tensor([[0]], device=device)  # SOS
